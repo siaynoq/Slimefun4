@@ -11,12 +11,12 @@ import org.bukkit.inventory.ItemStack;
 import io.github.thebusybiscuit.cscorelib2.item.CustomItem;
 import io.github.thebusybiscuit.slimefun4.core.attributes.EnergyNetComponent;
 import io.github.thebusybiscuit.slimefun4.core.networks.energy.EnergyNetComponentType;
+import io.github.thebusybiscuit.slimefun4.implementation.SlimefunItems;
 import io.github.thebusybiscuit.slimefun4.utils.ChestMenuUtils;
 import io.github.thebusybiscuit.slimefun4.utils.SlimefunUtils;
 import io.github.thebusybiscuit.slimefun4.utils.itemstack.ItemStackWrapper;
 import me.mrCookieSlime.CSCoreLibPlugin.Configuration.Config;
 import me.mrCookieSlime.Slimefun.Lists.RecipeType;
-import me.mrCookieSlime.Slimefun.Lists.SlimefunItems;
 import me.mrCookieSlime.Slimefun.Objects.Category;
 import me.mrCookieSlime.Slimefun.Objects.SlimefunItem.SlimefunItem;
 import me.mrCookieSlime.Slimefun.Objects.SlimefunItem.interfaces.InventoryBlock;
@@ -45,13 +45,9 @@ public class AnimalGrowthAccelerator extends SlimefunItem implements InventoryBl
             BlockMenu inv = BlockStorage.getInventory(b);
 
             if (inv != null) {
-                for (int slot : getInputSlots()) {
-                    if (inv.getItemInSlot(slot) != null) {
-                        b.getWorld().dropItemNaturally(b.getLocation(), inv.getItemInSlot(slot));
-                        inv.replaceExistingItem(slot, null);
-                    }
-                }
+                inv.dropItems(b.getLocation(), getInputSlots());
             }
+            
             return true;
         });
     }
@@ -104,7 +100,9 @@ public class AnimalGrowthAccelerator extends SlimefunItem implements InventoryBl
         for (Entity n : b.getWorld().getNearbyEntities(b.getLocation(), 3.0, 3.0, 3.0, n -> n instanceof Ageable && n.isValid() && !((Ageable) n).isAdult())) {
             for (int slot : getInputSlots()) {
                 if (SlimefunUtils.isItemSimilar(inv.getItemInSlot(slot), organicFood, false)) {
-                    if (ChargableBlock.getCharge(b) < ENERGY_CONSUMPTION) return;
+                    if (ChargableBlock.getCharge(b) < ENERGY_CONSUMPTION) {
+                        return;
+                    }
 
                     ChargableBlock.addCharge(b, -ENERGY_CONSUMPTION);
                     inv.consumeItem(slot);

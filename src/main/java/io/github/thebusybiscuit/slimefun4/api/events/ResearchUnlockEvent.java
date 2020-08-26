@@ -19,17 +19,9 @@ public class ResearchUnlockEvent extends Event implements Cancellable {
 
     private static final HandlerList handlers = new HandlerList();
 
-    private Player player;
-    private Research research;
+    private final Player player;
+    private final Research research;
     private boolean cancelled;
-
-    public HandlerList getHandlers() {
-        return handlers;
-    }
-
-    public static HandlerList getHandlerList() {
-        return handlers;
-    }
 
     public ResearchUnlockEvent(Player p, Research research) {
         this.player = p;
@@ -52,6 +44,15 @@ public class ResearchUnlockEvent extends Event implements Cancellable {
     @Override
     public void setCancelled(boolean cancel) {
         this.cancelled = cancel;
+    }
+
+    public static HandlerList getHandlerList() {
+        return handlers;
+    }
+
+    @Override
+    public HandlerList getHandlers() {
+        return getHandlerList();
     }
 
 }

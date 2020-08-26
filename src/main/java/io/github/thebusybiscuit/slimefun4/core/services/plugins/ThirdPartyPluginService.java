@@ -11,7 +11,7 @@ import org.bukkit.plugin.Plugin;
 
 import io.github.thebusybiscuit.slimefun4.api.SlimefunAddon;
 import io.github.thebusybiscuit.slimefun4.core.categories.FlexCategory;
-import me.mrCookieSlime.Slimefun.SlimefunPlugin;
+import io.github.thebusybiscuit.slimefun4.implementation.SlimefunPlugin;
 import me.mrCookieSlime.Slimefun.api.Slimefun;
 
 /**
@@ -44,8 +44,17 @@ public class ThirdPartyPluginService {
 
     public void start() {
         if (isPluginInstalled("PlaceholderAPI")) {
-            isPlaceholderAPIInstalled = true;
-            new PlaceholderAPIHook().register();
+            try {
+                PlaceholderAPIHook hook = new PlaceholderAPIHook(plugin);
+                hook.register();
+                isPlaceholderAPIInstalled = true;
+            }
+            catch (Exception | LinkageError x) {
+                String version = plugin.getServer().getPluginManager().getPlugin("PlaceholderAPI").getDescription().getVersion();
+
+                Slimefun.getLogger().log(Level.WARNING, "Maybe consider updating PlaceholderAPI or Slimefun?");
+                Slimefun.getLogger().log(Level.WARNING, x, () -> "Failed to hook into PlaceholderAPI v" + version);
+            }
         }
 
         if (isPluginInstalled("EmeraldEnchants")) {
@@ -61,7 +70,7 @@ public class ThirdPartyPluginService {
                 Class.forName("com.sk89q.worldedit.extent.Extent");
                 new WorldEditHook();
             }
-            catch (Throwable x) {
+            catch (Exception | LinkageError x) {
                 String version = plugin.getServer().getPluginManager().getPlugin("WorldEdit").getDescription().getVersion();
 
                 Slimefun.getLogger().log(Level.WARNING, "Maybe consider updating WorldEdit or Slimefun?");

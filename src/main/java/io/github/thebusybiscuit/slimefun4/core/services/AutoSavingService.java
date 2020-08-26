@@ -11,7 +11,7 @@ import org.bukkit.block.Block;
 import org.bukkit.entity.Player;
 
 import io.github.thebusybiscuit.slimefun4.api.player.PlayerProfile;
-import me.mrCookieSlime.Slimefun.SlimefunPlugin;
+import io.github.thebusybiscuit.slimefun4.implementation.SlimefunPlugin;
 import me.mrCookieSlime.Slimefun.api.BlockStorage;
 import me.mrCookieSlime.Slimefun.api.Slimefun;
 
@@ -64,7 +64,7 @@ public class AutoSavingService {
         }
 
         if (players > 0) {
-            Slimefun.getLogger().log(Level.INFO, "Auto-Saved Player Data for {0} Player(s)!", players);
+            Slimefun.getLogger().log(Level.INFO, "Auto-saved all player data for {0} player(s)!", players);
         }
     }
 
@@ -86,12 +86,14 @@ public class AutoSavingService {
         }
 
         if (!worlds.isEmpty()) {
-            Slimefun.getLogger().log(Level.INFO, "Auto-Saving Block Data... (Next Auto-Save: {0}m)", interval);
+            Slimefun.getLogger().log(Level.INFO, "Auto-saving block data... (Next auto-save: {0}m)", interval);
 
             for (BlockStorage storage : worlds) {
-                storage.save(false);
+                storage.save();
             }
         }
+
+        BlockStorage.saveChunks();
     }
 
 }

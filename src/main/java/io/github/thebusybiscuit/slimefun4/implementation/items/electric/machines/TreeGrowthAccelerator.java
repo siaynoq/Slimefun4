@@ -10,12 +10,12 @@ import org.bukkit.inventory.ItemStack;
 import io.github.thebusybiscuit.cscorelib2.item.CustomItem;
 import io.github.thebusybiscuit.slimefun4.core.attributes.EnergyNetComponent;
 import io.github.thebusybiscuit.slimefun4.core.networks.energy.EnergyNetComponentType;
+import io.github.thebusybiscuit.slimefun4.implementation.SlimefunItems;
 import io.github.thebusybiscuit.slimefun4.utils.ChestMenuUtils;
 import io.github.thebusybiscuit.slimefun4.utils.SlimefunUtils;
 import io.github.thebusybiscuit.slimefun4.utils.itemstack.ItemStackWrapper;
 import me.mrCookieSlime.CSCoreLibPlugin.Configuration.Config;
 import me.mrCookieSlime.Slimefun.Lists.RecipeType;
-import me.mrCookieSlime.Slimefun.Lists.SlimefunItems;
 import me.mrCookieSlime.Slimefun.Objects.Category;
 import me.mrCookieSlime.Slimefun.Objects.SlimefunItem.SlimefunItem;
 import me.mrCookieSlime.Slimefun.Objects.SlimefunItem.interfaces.InventoryBlock;
@@ -55,12 +55,7 @@ public class TreeGrowthAccelerator extends SlimefunItem implements InventoryBloc
             BlockMenu inv = BlockStorage.getInventory(b);
 
             if (inv != null) {
-                for (int slot : getInputSlots()) {
-                    if (inv.getItemInSlot(slot) != null) {
-                        b.getWorld().dropItemNaturally(b.getLocation(), inv.getItemInSlot(slot));
-                        inv.replaceExistingItem(slot, null);
-                    }
-                }
+                inv.dropItems(b.getLocation(), getInputSlots());
             }
 
             return true;
@@ -112,46 +107,38 @@ public class TreeGrowthAccelerator extends SlimefunItem implements InventoryBloc
     protected void tick(Block b) {
         BlockMenu inv = BlockStorage.getInventory(b);
 
-        if (work(b, inv) > 0) {
-            for (int slot : getInputSlots()) {
-                if (SlimefunUtils.isItemSimilar(inv.getItemInSlot(slot), organicFertilizer, false)) {
-                    inv.consumeItem(slot);
-                    break;
-                }
-            }
-        }
-    }
+        if (ChargableBlock.getCharge(b) >= ENERGY_CONSUMPTION) {
+            for (int x = -RADIUS; x <= RADIUS; x++) {
+                for (int z = -RADIUS; z <= RADIUS; z++) {
+                    Block block = b.getRelative(x, 0, z);
 
-    private int work(Block b, BlockMenu inv) {
-        int work = 0;
+                    if (Tag.SAPLINGS.isTagged(block.getType())) {
+                        Sapling sapling = (Sapling) block.getBlockData();
 
-        for (int x = -RADIUS; x <= RADIUS; x++) {
-            for (int z = -RADIUS; z <= RADIUS; z++) {
-                Block block = b.getRelative(x, 0, z);
-
-                if (Tag.SAPLINGS.isTagged(block.getType())) {
-                    Sapling sapling = (Sapling) block.getBlockData();
-
-                    if (sapling.getStage() < sapling.getMaximumStage()) {
-                        for (int slot : getInputSlots()) {
-                            if (SlimefunUtils.isItemSimilar(inv.getItemInSlot(slot), organicFertilizer, false)) {
-                                if (work > 3 || ChargableBlock.getCharge(b) < ENERGY_CONSUMPTION) return work;
-                                ChargableBlock.addCharge(b, -ENERGY_CONSUMPTION);
-
-                                sapling.setStage(sapling.getStage() + 1);
-                                block.setBlockData(sapling);
-
-                                block.getWorld().spawnParticle(Particle.VILLAGER_HAPPY, block.getLocation().add(0.5D, 0.5D, 0.5D), 4, 0.1F, 0.1F, 0.1F);
-                                work++;
-                                return work;
-                            }
+                        if (sapling.getStage() < sapling.getMaximumStage() && grow(b, block, inv, sapling)) {
+                            return;
                         }
                     }
                 }
             }
         }
+    }
 
-        return work;
+    private boolean grow(Block machine, Block block, BlockMenu inv, Sapling sapling) {
+        for (int slot : getInputSlots()) {
+            if (SlimefunUtils.isItemSimilar(inv.getItemInSlot(slot), organicFertilizer, false)) {
+                ChargableBlock.addCharge(machine, -ENERGY_CONSUMPTION);
+
+                sapling.setStage(sapling.getStage() + 1);
+                block.setBlockData(sapling, false);
+
+                inv.consumeItem(slot);
+                block.getWorld().spawnParticle(Particle.VILLAGER_HAPPY, block.getLocation().add(0.5D, 0.5D, 0.5D), 4, 0.1F, 0.1F, 0.1F);
+                return true;
+            }
+        }
+
+        return false;
     }
 
 }

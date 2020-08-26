@@ -18,10 +18,11 @@ import io.github.thebusybiscuit.cscorelib2.chat.ChatColors;
 import io.github.thebusybiscuit.cscorelib2.item.CustomItem;
 import io.github.thebusybiscuit.cscorelib2.math.DoubleHandler;
 import io.github.thebusybiscuit.slimefun4.api.player.PlayerProfile;
+import io.github.thebusybiscuit.slimefun4.implementation.SlimefunPlugin;
 import io.github.thebusybiscuit.slimefun4.utils.ChestMenuUtils;
-import io.github.thebusybiscuit.slimefun4.utils.SlimefunUtils;
+import io.github.thebusybiscuit.slimefun4.utils.HeadTexture;
+import io.papermc.lib.PaperLib;
 import me.mrCookieSlime.CSCoreLibPlugin.general.Inventory.ChestMenu;
-import me.mrCookieSlime.Slimefun.SlimefunPlugin;
 import me.mrCookieSlime.Slimefun.api.Slimefun;
 
 public final class TeleportationManager {
@@ -46,18 +47,24 @@ public final class TeleportationManager {
                 menu.addItem(slot, ChestMenuUtils.getBackground(), ChestMenuUtils.getEmptyClickHandler());
             }
 
-            menu.addItem(4, new CustomItem(SlimefunUtils.getCustomHead("c9c8881e42915a9d29bb61a16fb26d059913204d265df5b439b3d792acd56"), ChatColor.YELLOW + SlimefunPlugin.getLocal().getMessage(p, "machines.TELEPORTER.gui.title")));
+            menu.addItem(4, new CustomItem(HeadTexture.GLOBE_OVERWORLD.getAsItemStack(), ChatColor.YELLOW + SlimefunPlugin.getLocalization().getMessage(p, "machines.TELEPORTER.gui.title")));
             menu.addMenuClickHandler(4, ChestMenuUtils.getEmptyClickHandler());
 
             Location source = new Location(b.getWorld(), b.getX() + 0.5D, b.getY() + 2D, b.getZ() + 0.5D);
             int index = 0;
 
             for (Waypoint waypoint : profile.getWaypoints()) {
-                if (index >= teleporterInventory.length) break;
+                if (index >= teleporterInventory.length) {
+                    break;
+                }
+
                 int slot = teleporterInventory[index];
-                
                 Location l = waypoint.getLocation();
-                menu.addItem(slot, new CustomItem(waypoint.getIcon(), waypoint.getName().replace("player:death ", ""), "", "&8\u21E8 &7" + SlimefunPlugin.getLocal().getResourceString(p, "tooltips.world") + ": &r" + l.getWorld().getName(), "&8\u21E8 &7X: &r" + l.getX(), "&8\u21E8 &7Y: &r" + l.getY(), "&8\u21E8 &7Z: &r" + l.getZ(), "&8\u21E8 &7" + SlimefunPlugin.getLocal().getMessage(p, "machines.TELEPORTER.gui.time") + ": &r" + DoubleHandler.fixDouble(0.5 * getTeleportationTime(complexity, source, l)) + "s", "", "&8\u21E8 &c" + SlimefunPlugin.getLocal().getMessage(p, "machines.TELEPORTER.gui.tooltip")));
+                double time = DoubleHandler.fixDouble(0.5 * getTeleportationTime(complexity, source, l));
+
+                String[] lore = { "", "&8\u21E8 &7" + SlimefunPlugin.getLocalization().getResourceString(p, "tooltips.world") + ": &f" + l.getWorld().getName(), "&8\u21E8 &7X: &f" + l.getX(), "&8\u21E8 &7Y: &f" + l.getY(), "&8\u21E8 &7Z: &f" + l.getZ(), "&8\u21E8 &7" + SlimefunPlugin.getLocalization().getMessage(p, "machines.TELEPORTER.gui.time") + ": &f" + time + "s", "", "&8\u21E8 &c" + SlimefunPlugin.getLocalization().getMessage(p, "machines.TELEPORTER.gui.tooltip") };
+
+                menu.addItem(slot, new CustomItem(waypoint.getIcon(), waypoint.getName().replace("player:death ", ""), lore));
                 menu.addMenuClickHandler(slot, (pl, s, item, action) -> {
                     pl.closeInventory();
                     teleport(pl.getUniqueId(), complexity, source, l, false);
@@ -67,7 +74,7 @@ public final class TeleportationManager {
                 index++;
             }
 
-            menu.open(p);
+            Slimefun.runSync(() -> menu.open(p));
         });
     }
 
@@ -96,14 +103,14 @@ public final class TeleportationManager {
     }
 
     private boolean isValid(Player p, Location source) {
-        return p != null && p.getLocation().distanceSquared(source) < 2.0;
+        return p != null && p.isValid() && p.getWorld().getUID().equals(source.getWorld().getUID()) && p.getLocation().distanceSquared(source) < 2.0;
     }
 
     private void cancel(UUID uuid, Player p) {
         teleporterUsers.remove(uuid);
 
         if (p != null) {
-            p.sendTitle(ChatColors.color(SlimefunPlugin.getLocal().getMessage(p, "machines.TELEPORTER.cancelled")), ChatColors.color("&c&k40&r&c%"), 20, 60, 20);
+            p.sendTitle(ChatColors.color(SlimefunPlugin.getLocalization().getMessage(p, "machines.TELEPORTER.cancelled")), ChatColors.color("&c&k40&f&c%"), 20, 60, 20);
         }
     }
 
@@ -112,21 +119,28 @@ public final class TeleportationManager {
 
         if (isValid(p, source)) {
             if (progress > 99) {
-                p.sendTitle(ChatColors.color(SlimefunPlugin.getLocal().getMessage(p, "machines.TELEPORTER.teleported")), ChatColors.color("&b100%"), 20, 60, 20);
+                p.sendTitle(ChatColors.color(SlimefunPlugin.getLocalization().getMessage(p, "machines.TELEPORTER.teleported")), ChatColors.color("&b100%"), 20, 60, 20);
 
-                p.teleport(destination);
+                PaperLib.teleportAsync(p, destination).thenAccept(teleported -> {
+                    if (teleported.booleanValue()) {
+                        // This needs to run on the main Thread so we force it, as the
+                        // async teleportation might happen on a seperate Thread.
+                        Slimefun.runSync(() -> {
+                            if (resistance) {
+                                p.addPotionEffect(new PotionEffect(PotionEffectType.DAMAGE_RESISTANCE, 600, 20));
+                                SlimefunPlugin.getLocalization().sendMessage(p, "machines.TELEPORTER.invulnerability");
+                            }
 
-                if (resistance) {
-                    p.addPotionEffect(new PotionEffect(PotionEffectType.DAMAGE_RESISTANCE, 600, 20));
-                    SlimefunPlugin.getLocal().sendMessage(p, "machines.TELEPORTER.invulnerability");
-                }
-
-                destination.getWorld().spawnParticle(Particle.PORTAL, new Location(destination.getWorld(), destination.getX(), destination.getY() + 1, destination.getZ()), progress * 2, 0.2F, 0.8F, 0.2F);
-                destination.getWorld().playSound(destination, Sound.BLOCK_BEACON_ACTIVATE, 1F, 1F);
-                teleporterUsers.remove(uuid);
+                            Location loc = new Location(destination.getWorld(), destination.getX(), destination.getY() + 1, destination.getZ());
+                            destination.getWorld().spawnParticle(Particle.PORTAL, loc, progress * 2, 0.2F, 0.8F, 0.2F);
+                            destination.getWorld().playSound(destination, Sound.BLOCK_BEACON_ACTIVATE, 1F, 1F);
+                            teleporterUsers.remove(uuid);
+                        });
+                    }
+                });
             }
             else {
-                p.sendTitle(ChatColors.color(SlimefunPlugin.getLocal().getMessage(p, "machines.TELEPORTER.teleporting")), ChatColors.color("&b" + progress + "%"), 0, 60, 0);
+                p.sendTitle(ChatColors.color(SlimefunPlugin.getLocalization().getMessage(p, "machines.TELEPORTER.teleporting")), ChatColors.color("&b" + progress + "%"), 0, 60, 0);
 
                 source.getWorld().spawnParticle(Particle.PORTAL, source, progress * 2, 0.2F, 0.8F, 0.2F);
                 source.getWorld().playSound(source, Sound.BLOCK_BEACON_AMBIENT, 1F, 0.6F);

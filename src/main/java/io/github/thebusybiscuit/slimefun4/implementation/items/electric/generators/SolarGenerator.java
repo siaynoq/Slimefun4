@@ -1,26 +1,30 @@
 package io.github.thebusybiscuit.slimefun4.implementation.items.electric.generators;
 
 import org.bukkit.Location;
+import org.bukkit.World;
+import org.bukkit.World.Environment;
 import org.bukkit.inventory.ItemStack;
 
 import io.github.thebusybiscuit.slimefun4.api.events.PlayerRightClickEvent;
-import io.github.thebusybiscuit.slimefun4.core.attributes.EnergyNetComponent;
+import io.github.thebusybiscuit.slimefun4.core.attributes.EnergyNetProvider;
+import io.github.thebusybiscuit.slimefun4.core.handlers.BlockUseHandler;
 import io.github.thebusybiscuit.slimefun4.core.networks.energy.EnergyNetComponentType;
 import me.mrCookieSlime.CSCoreLibPlugin.Configuration.Config;
 import me.mrCookieSlime.Slimefun.Lists.RecipeType;
 import me.mrCookieSlime.Slimefun.Objects.Category;
-import me.mrCookieSlime.Slimefun.Objects.SlimefunItem.SimpleSlimefunItem;
 import me.mrCookieSlime.Slimefun.Objects.SlimefunItem.SlimefunItem;
-import me.mrCookieSlime.Slimefun.Objects.handlers.BlockUseHandler;
-import me.mrCookieSlime.Slimefun.Objects.handlers.GeneratorTicker;
 import me.mrCookieSlime.Slimefun.api.SlimefunItemStack;
 
-public abstract class SolarGenerator extends SimpleSlimefunItem<GeneratorTicker> implements EnergyNetComponent {
+public class SolarGenerator extends SlimefunItem implements EnergyNetProvider {
 
-    private static final int DEFAULT_NIGHT_ENERGY = 0;
+    private final int dayEnergy;
+    private final int nightEnergy;
 
-    public SolarGenerator(Category category, SlimefunItemStack item, RecipeType recipeType, ItemStack[] recipe) {
+    public SolarGenerator(Category category, int dayEnergy, int nightEnergy, SlimefunItemStack item, RecipeType recipeType, ItemStack[] recipe) {
         super(category, item, recipeType, recipe);
+
+        this.dayEnergy = dayEnergy;
+        this.nightEnergy = nightEnergy;
     }
 
     /**
@@ -29,19 +33,18 @@ public abstract class SolarGenerator extends SimpleSlimefunItem<GeneratorTicker>
      * 
      * @return The amount of energy generated at daylight
      */
-    public abstract double getDayEnergy();
+    public int getDayEnergy() {
+        return dayEnergy;
+    }
 
     /**
      * This method returns the amount of energy that this {@link SolarGenerator}
      * produces during the night.
      * 
-     * This is 0 by default.
-     * 
      * @return The amount of energy generated at night time
      */
-    public double getNightEnergy() {
-        // Override this as necessary for highly advanced Solar Generators
-        return DEFAULT_NIGHT_ENERGY;
+    public int getNightEnergy() {
+        return nightEnergy;
     }
 
     @Override
@@ -55,27 +58,42 @@ public abstract class SolarGenerator extends SimpleSlimefunItem<GeneratorTicker>
     }
 
     @Override
-    public GeneratorTicker getItemHandler() {
-        return new GeneratorTicker() {
+    public int getGeneratedOutput(Location l, Config data) {
+        World world = l.getWorld();
 
-            @Override
-            public double generateEnergy(Location l, SlimefunItem item, Config data) {
-                if (!l.getWorld().isChunkLoaded(l.getBlockX() >> 4, l.getBlockZ() >> 4) || l.getBlock().getLightFromSky() != 15) {
-                    return 0D;
-                }
+        if (world.getEnvironment() != Environment.NORMAL) {
+            return 0;
+        }
 
-                if (l.getWorld().getTime() < 12300 || l.getWorld().getTime() > 23850) {
-                    return getDayEnergy();
-                }
+        boolean isDaytime = isDaytime(world);
 
-                return getNightEnergy();
-            }
+        // Performance optimization for daytime-only solar generators
+        if (!isDaytime && getNightEnergy() < 0.1) {
+            return 0;
+        }
 
-            @Override
-            public boolean explode(Location l) {
-                return false;
-            }
-        };
+        if (!world.isChunkLoaded(l.getBlockX() >> 4, l.getBlockZ() >> 4) || l.getBlock().getLightFromSky() != 15) {
+            return 0;
+        }
+
+        if (isDaytime) {
+            return getDayEnergy();
+        }
+
+        return getNightEnergy();
+    }
+
+    /**
+     * This method returns whether a given {@link World} has daytime.
+     * It will also return false if a thunderstorm is active in this world.
+     * 
+     * @param world
+     *            The {@link World} to check
+     * 
+     * @return Whether the given {@link World} has daytime and no active thunderstorm
+     */
+    private boolean isDaytime(World world) {
+        return !world.hasStorm() && !world.isThundering() && (world.getTime() < 12300 || world.getTime() > 23850);
     }
 
     @Override

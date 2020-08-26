@@ -23,10 +23,9 @@ import org.bukkit.inventory.meta.ItemMeta;
 
 import io.github.thebusybiscuit.slimefun4.api.player.PlayerBackpack;
 import io.github.thebusybiscuit.slimefun4.api.player.PlayerProfile;
+import io.github.thebusybiscuit.slimefun4.implementation.SlimefunPlugin;
+import io.github.thebusybiscuit.slimefun4.implementation.items.backpacks.Cooler;
 import io.github.thebusybiscuit.slimefun4.implementation.items.backpacks.SlimefunBackpack;
-import io.github.thebusybiscuit.slimefun4.implementation.items.food.Cooler;
-import io.github.thebusybiscuit.slimefun4.implementation.items.food.Juice;
-import me.mrCookieSlime.Slimefun.SlimefunPlugin;
 import me.mrCookieSlime.Slimefun.Objects.SlimefunItem.SlimefunItem;
 import me.mrCookieSlime.Slimefun.api.Slimefun;
 
@@ -83,52 +82,40 @@ public class BackpackListener implements Listener {
         if (item != null) {
             SlimefunItem backpack = SlimefunItem.getByItem(item);
 
-            if (e.getClick() == ClickType.NUMBER_KEY) {
-                if (e.getClickedInventory().getType() != InventoryType.PLAYER) {
-                    ItemStack hotbarItem = e.getWhoClicked().getInventory().getItem(e.getHotbarButton());
+            if (backpack instanceof SlimefunBackpack) {
+                if (e.getClick() == ClickType.NUMBER_KEY) {
+                    if (e.getClickedInventory().getType() != InventoryType.PLAYER) {
+                        ItemStack hotbarItem = e.getWhoClicked().getInventory().getItem(e.getHotbarButton());
 
-                    if (!isItemAllowed(hotbarItem, backpack)) {
-                        e.setCancelled(true);
+                        if (!isAllowed((SlimefunBackpack) backpack, hotbarItem)) {
+                            e.setCancelled(true);
+                        }
                     }
                 }
-            }
-            else if (!isItemAllowed(e.getCurrentItem(), backpack)) {
-                e.setCancelled(true);
+                else if (!isAllowed((SlimefunBackpack) backpack, e.getCurrentItem())) {
+                    e.setCancelled(true);
+                }
             }
         }
+    }
+
+    private boolean isAllowed(SlimefunBackpack backpack, ItemStack item) {
+        if (item == null || item.getType() == Material.AIR) {
+            return true;
+        }
+
+        return backpack.isItemAllowed(item, SlimefunItem.getByItem(item));
     }
 
     public void openBackpack(Player p, ItemStack item, SlimefunBackpack backpack) {
         if (item.getAmount() == 1) {
             if (Slimefun.hasUnlocked(p, backpack, true) && !PlayerProfile.get(p, profile -> openBackpack(p, item, profile, backpack.getSize()))) {
-                SlimefunPlugin.getLocal().sendMessage(p, "messages.opening-backpack");
+                SlimefunPlugin.getLocalization().sendMessage(p, "messages.opening-backpack");
             }
         }
         else {
-            SlimefunPlugin.getLocal().sendMessage(p, "backpack.no-stack", true);
+            SlimefunPlugin.getLocalization().sendMessage(p, "backpack.no-stack", true);
         }
-    }
-
-    private boolean isItemAllowed(ItemStack item, SlimefunItem backpack) {
-        if (item == null || item.getType() == Material.AIR) {
-            return true;
-        }
-
-        if (item.getType() == Material.SHULKER_BOX || item.getType().toString().endsWith("_SHULKER_BOX")) {
-            return false;
-        }
-
-        SlimefunItem slimefunItem = SlimefunItem.getByItem(item);
-
-        if (slimefunItem instanceof SlimefunBackpack) {
-            return false;
-        }
-
-        if (backpack instanceof Cooler) {
-            return slimefunItem instanceof Juice;
-        }
-
-        return true;
     }
 
     private void openBackpack(Player p, ItemStack item, PlayerProfile profile, int size) {
@@ -151,7 +138,7 @@ public class BackpackListener implements Listener {
             });
         }
         else {
-            SlimefunPlugin.getLocal().sendMessage(p, "backpack.already-open", true);
+            SlimefunPlugin.getLocalization().sendMessage(p, "backpack.already-open", true);
         }
     }
 

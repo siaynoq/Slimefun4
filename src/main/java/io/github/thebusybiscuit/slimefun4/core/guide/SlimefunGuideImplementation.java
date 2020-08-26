@@ -8,9 +8,9 @@ import org.bukkit.inventory.ItemStack;
 
 import io.github.thebusybiscuit.slimefun4.api.player.PlayerProfile;
 import io.github.thebusybiscuit.slimefun4.core.researching.Research;
+import io.github.thebusybiscuit.slimefun4.implementation.SlimefunPlugin;
 import io.github.thebusybiscuit.slimefun4.implementation.guide.BookSlimefunGuide;
 import io.github.thebusybiscuit.slimefun4.implementation.guide.ChestSlimefunGuide;
-import me.mrCookieSlime.Slimefun.SlimefunPlugin;
 import me.mrCookieSlime.Slimefun.Objects.Category;
 import me.mrCookieSlime.Slimefun.Objects.SlimefunItem.SlimefunItem;
 
@@ -43,6 +43,14 @@ public interface SlimefunGuideImplementation {
      * @return The {@link ItemStack} representation for this {@link SlimefunGuideImplementation}
      */
     ItemStack getItem();
+
+    /**
+     * This method returns whether this {@link SlimefunGuideImplementation} is meant
+     * for Survival Mode.
+     * 
+     * @return Whether this is a survival mode implementation
+     */
+    boolean isSurvivalMode();
 
     void openMainMenu(PlayerProfile profile, int page);
 

@@ -9,11 +9,11 @@ import org.bukkit.inventory.ItemStack;
 
 import io.github.thebusybiscuit.cscorelib2.item.CustomItem;
 import io.github.thebusybiscuit.slimefun4.core.attributes.RecipeDisplayItem;
+import io.github.thebusybiscuit.slimefun4.implementation.SlimefunItems;
 import io.github.thebusybiscuit.slimefun4.implementation.items.tools.GoldPan;
 import io.github.thebusybiscuit.slimefun4.utils.ChestMenuUtils;
 import io.github.thebusybiscuit.slimefun4.utils.SlimefunUtils;
 import me.mrCookieSlime.Slimefun.Lists.RecipeType;
-import me.mrCookieSlime.Slimefun.Lists.SlimefunItems;
 import me.mrCookieSlime.Slimefun.Objects.Category;
 import me.mrCookieSlime.Slimefun.Objects.SlimefunItem.abstractItems.AContainer;
 import me.mrCookieSlime.Slimefun.Objects.SlimefunItem.abstractItems.MachineRecipe;
@@ -42,11 +42,6 @@ public abstract class ElectricGoldPan extends AContainer implements RecipeDispla
     }
 
     @Override
-    public String getInventoryTitle() {
-        return "&6Electric Gold Pan";
-    }
-
-    @Override
     public ItemStack getProgressBar() {
         return new ItemStack(Material.DIAMOND_SHOVEL);
     }
@@ -63,19 +58,27 @@ public abstract class ElectricGoldPan extends AContainer implements RecipeDispla
             if (timeleft > 0 && getSpeed() < 10) {
                 ChestMenuUtils.updateProgressbar(menu, 22, timeleft, processing.get(b).getTicks(), getProgressBar());
 
-                if (ChargableBlock.isChargable(b)) {
-                    if (ChargableBlock.getCharge(b) < getEnergyConsumption()) return;
-                    ChargableBlock.addCharge(b, -getEnergyConsumption());
-                    progress.put(b, timeleft - 1);
+                if (ChargableBlock.getCharge(b) < getEnergyConsumption()) {
+                    return;
                 }
-                else progress.put(b, timeleft - 1);
+
+                ChargableBlock.addCharge(b, -getEnergyConsumption());
+                progress.put(b, timeleft - 1);
             }
-            else if (ChargableBlock.isChargable(b)) {
-                if (ChargableBlock.getCharge(b) < getEnergyConsumption()) return;
+            else {
+                if (ChargableBlock.getCharge(b) < getEnergyConsumption()) {
+                    return;
+                }
+
                 ChargableBlock.addCharge(b, -getEnergyConsumption());
 
                 menu.replaceExistingItem(22, new CustomItem(new ItemStack(Material.BLACK_STAINED_GLASS_PANE), " "));
-                menu.pushItem(processing.get(b).getOutput()[0].clone(), getOutputSlots());
+
+                ItemStack output = processing.get(b).getOutput()[0];
+
+                if (output.getType() != Material.AIR) {
+                    menu.pushItem(output.clone(), getOutputSlots());
+                }
 
                 progress.remove(b);
                 processing.remove(b);
@@ -83,11 +86,21 @@ public abstract class ElectricGoldPan extends AContainer implements RecipeDispla
         }
         else {
             for (int slot : getInputSlots()) {
-                if (process(b, menu, slot)) {
+                if (hasFreeSlot(menu) && process(b, menu, slot)) {
                     break;
                 }
             }
         }
+    }
+
+    private boolean hasFreeSlot(BlockMenu menu) {
+        for (int slot : getOutputSlots()) {
+            if (menu.getItemInSlot(slot) == null) {
+                return true;
+            }
+        }
+
+        return false;
     }
 
     private boolean process(Block b, BlockMenu menu, int slot) {

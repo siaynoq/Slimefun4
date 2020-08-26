@@ -78,7 +78,7 @@ public final class HashedArmorpiece {
      */
     public boolean hasDiverged(ItemStack stack) {
         if (stack == null || stack.getType() == Material.AIR) {
-            return hash == 0;
+            return hash != 0;
         }
         else {
             ItemStack copy = stack.clone();
@@ -97,6 +97,11 @@ public final class HashedArmorpiece {
      */
     public Optional<SlimefunArmorPiece> getItem() {
         return item;
+    }
+
+    @Override
+    public String toString() {
+        return "HashedArmorpiece {hash=" + hash + ",item=" + item.map(SlimefunItem::getID).orElse(null) + '}';
     }
 
 }

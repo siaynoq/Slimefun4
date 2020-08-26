@@ -29,7 +29,10 @@ public final class SimpleHologram {
     public static void remove(Block b) {
         Slimefun.runSync(() -> {
             ArmorStand hologram = getArmorStand(b, false);
-            if (hologram != null) hologram.remove();
+
+            if (hologram != null) {
+                hologram.remove();
+            }
         });
     }
 
@@ -37,13 +40,21 @@ public final class SimpleHologram {
         Location l = new Location(b.getWorld(), b.getX() + 0.5, b.getY() + 0.7F, b.getZ() + 0.5);
 
         for (Entity n : l.getChunk().getEntities()) {
-            if (n instanceof ArmorStand && n.getCustomName() != null && l.distanceSquared(n.getLocation()) < 0.4D) {
+            if (n instanceof ArmorStand && l.distanceSquared(n.getLocation()) < 0.4D && isPossibleHologram((ArmorStand) n)) {
                 return (ArmorStand) n;
             }
         }
 
-        if (!createIfNoneExists) return null;
-        else return create(l);
+        if (!createIfNoneExists) {
+            return null;
+        }
+        else {
+            return create(l);
+        }
+    }
+
+    private static boolean isPossibleHologram(ArmorStand armorstand) {
+        return armorstand.isValid() && armorstand.isSilent() && armorstand.isMarker() && !armorstand.hasGravity() && armorstand.isCustomNameVisible();
     }
 
     public static ArmorStand create(Location l) {

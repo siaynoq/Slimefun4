@@ -3,15 +3,14 @@ package io.github.thebusybiscuit.slimefun4.core.services;
 import java.io.File;
 import java.util.logging.Level;
 
-import io.github.thebusybiscuit.slimefun4.utils.PatternUtils;
 import org.bukkit.plugin.Plugin;
 
 import io.github.thebusybiscuit.cscorelib2.config.Config;
 import io.github.thebusybiscuit.cscorelib2.updater.GitHubBuildsUpdater;
 import io.github.thebusybiscuit.cscorelib2.updater.Updater;
 import io.github.thebusybiscuit.slimefun4.api.SlimefunBranch;
-import io.github.thebusybiscuit.slimefun4.utils.NumberUtils;
-import me.mrCookieSlime.Slimefun.SlimefunPlugin;
+import io.github.thebusybiscuit.slimefun4.implementation.SlimefunPlugin;
+import io.github.thebusybiscuit.slimefun4.utils.PatternUtils;
 
 /**
  * This Class represents our {@link Updater} Service.
@@ -95,8 +94,9 @@ public class UpdaterService {
      * @return The build number of this Slimefun.
      */
     public int getBuildNumber() {
-        if (updater != null && PatternUtils.NUMERIC.matcher(this.updater.getLocalVersion()).matches())
-            return Integer.parseInt(this.updater.getLocalVersion());
+        if (updater != null && PatternUtils.NUMERIC.matcher(this.updater.getLocalVersion()).matches()) {
+            return Integer.parseInt(updater.getLocalVersion());
+        }
 
         return -1;
     }

@@ -6,12 +6,12 @@ import org.bukkit.block.Biome;
 import org.bukkit.inventory.ItemStack;
 
 import io.github.thebusybiscuit.slimefun4.api.geo.GEOResource;
-import me.mrCookieSlime.Slimefun.SlimefunPlugin;
-import me.mrCookieSlime.Slimefun.Lists.SlimefunItems;
+import io.github.thebusybiscuit.slimefun4.implementation.SlimefunItems;
+import io.github.thebusybiscuit.slimefun4.implementation.SlimefunPlugin;
 
 class OilResource implements GEOResource {
 
-    private final NamespacedKey key = new NamespacedKey(SlimefunPlugin.instance, "oil");
+    private final NamespacedKey key = new NamespacedKey(SlimefunPlugin.instance(), "oil");
 
     @Override
     public int getDefaultSupply(Environment environment, Biome biome) {
@@ -91,7 +91,7 @@ class OilResource implements GEOResource {
 
     @Override
     public ItemStack getItem() {
-        return SlimefunItems.BUCKET_OF_OIL.clone();
+        return SlimefunItems.OIL_BUCKET.clone();
     }
 
     @Override

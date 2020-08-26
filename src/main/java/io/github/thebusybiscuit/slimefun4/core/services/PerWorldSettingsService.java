@@ -21,7 +21,7 @@ import io.github.thebusybiscuit.cscorelib2.collections.OptionalMap;
 import io.github.thebusybiscuit.cscorelib2.config.Config;
 import io.github.thebusybiscuit.slimefun4.api.MinecraftVersion;
 import io.github.thebusybiscuit.slimefun4.api.SlimefunAddon;
-import me.mrCookieSlime.Slimefun.SlimefunPlugin;
+import io.github.thebusybiscuit.slimefun4.implementation.SlimefunPlugin;
 import me.mrCookieSlime.Slimefun.Objects.SlimefunItem.SlimefunItem;
 
 /**
@@ -53,7 +53,7 @@ public class PerWorldSettingsService {
             migrate();
         }
         catch (IOException e) {
-            plugin.getLogger().log(Level.WARNING, "An error occured while migrating old world settings", e);
+            plugin.getLogger().log(Level.WARNING, "An error occurred while migrating old world settings", e);
         }
 
         for (World world : worlds) {
@@ -229,24 +229,7 @@ public class PerWorldSettingsService {
             config.setDefaultValue("enabled", true);
 
             if (config.getBoolean("enabled")) {
-                for (SlimefunItem item : SlimefunPlugin.getRegistry().getEnabledSlimefunItems()) {
-                    if (item != null && item.getID() != null) {
-                        String addon = item.getAddon().getName().toLowerCase(Locale.ROOT);
-                        config.setDefaultValue(addon + ".enabled", true);
-                        config.setDefaultValue(addon + '.' + item.getID(), true);
-
-                        boolean isAddonDisabled = config.getBoolean(addon + ".enabled");
-
-                        if (isAddonDisabled) {
-                            Set<String> blacklist = disabledAddons.computeIfAbsent(plugin, key -> new HashSet<>());
-                            blacklist.add(name);
-                        }
-
-                        if (!isAddonDisabled || !config.getBoolean(addon + '.' + item.getID())) {
-                            items.add(item.getID());
-                        }
-                    }
-                }
+                loadItemsFromWorldConfig(name, config, items);
 
                 if (SlimefunPlugin.getMinecraftVersion() != MinecraftVersion.UNIT_TEST) {
                     config.save();
@@ -257,6 +240,27 @@ public class PerWorldSettingsService {
             }
 
             return items;
+        }
+    }
+
+    private void loadItemsFromWorldConfig(String worldName, Config config, Set<String> items) {
+        for (SlimefunItem item : SlimefunPlugin.getRegistry().getEnabledSlimefunItems()) {
+            if (item != null && item.getID() != null) {
+                String addon = item.getAddon().getName().toLowerCase(Locale.ROOT);
+                config.setDefaultValue(addon + ".enabled", true);
+                config.setDefaultValue(addon + '.' + item.getID(), true);
+
+                boolean isAddonDisabled = config.getBoolean(addon + ".enabled");
+
+                if (isAddonDisabled) {
+                    Set<String> blacklist = disabledAddons.computeIfAbsent(plugin, key -> new HashSet<>());
+                    blacklist.add(worldName);
+                }
+
+                if (!isAddonDisabled || !config.getBoolean(addon + '.' + item.getID())) {
+                    items.add(item.getID());
+                }
+            }
         }
     }
 

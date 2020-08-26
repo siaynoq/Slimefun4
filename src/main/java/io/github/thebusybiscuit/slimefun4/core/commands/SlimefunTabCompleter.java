@@ -1,6 +1,7 @@
 package io.github.thebusybiscuit.slimefun4.core.commands;
 
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.Collections;
 import java.util.LinkedList;
 import java.util.List;
@@ -11,7 +12,7 @@ import org.bukkit.command.CommandSender;
 import org.bukkit.command.TabCompleter;
 
 import io.github.thebusybiscuit.slimefun4.core.researching.Research;
-import me.mrCookieSlime.Slimefun.SlimefunPlugin;
+import io.github.thebusybiscuit.slimefun4.implementation.SlimefunPlugin;
 import me.mrCookieSlime.Slimefun.Objects.SlimefunItem.SlimefunItem;
 
 class SlimefunTabCompleter implements TabCompleter {
@@ -50,6 +51,9 @@ class SlimefunTabCompleter implements TabCompleter {
                 // Returning null will make it fallback to the default arguments (all online players)
                 return null;
             }
+        }
+        else if (args.length == 4 && args[0].equalsIgnoreCase("give")) {
+            return createReturnList(Arrays.asList("1", "2", "4", "8", "16", "32", "64"), args[3]);
         }
         else {
             // Returning null will make it fallback to the default arguments (all online players)

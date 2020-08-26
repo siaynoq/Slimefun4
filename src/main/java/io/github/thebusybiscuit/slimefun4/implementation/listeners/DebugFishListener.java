@@ -1,8 +1,10 @@
 package io.github.thebusybiscuit.slimefun4.implementation.listeners;
 
-import org.bukkit.ChatColor;
+import java.util.logging.Level;
+
 import org.bukkit.Material;
 import org.bukkit.block.Block;
+import org.bukkit.block.BlockFace;
 import org.bukkit.block.Skull;
 import org.bukkit.block.data.Directional;
 import org.bukkit.block.data.Rotatable;
@@ -15,25 +17,35 @@ import org.bukkit.inventory.EquipmentSlot;
 
 import io.github.thebusybiscuit.cscorelib2.chat.ChatColors;
 import io.github.thebusybiscuit.cscorelib2.skull.SkullBlock;
+import io.github.thebusybiscuit.slimefun4.core.attributes.EnergyNetComponent;
+import io.github.thebusybiscuit.slimefun4.core.attributes.EnergyNetProvider;
 import io.github.thebusybiscuit.slimefun4.core.networks.energy.EnergyNet;
-import io.github.thebusybiscuit.slimefun4.implementation.tasks.TickerTask;
+import io.github.thebusybiscuit.slimefun4.implementation.SlimefunItems;
+import io.github.thebusybiscuit.slimefun4.implementation.SlimefunPlugin;
+import io.github.thebusybiscuit.slimefun4.utils.HeadTexture;
 import io.github.thebusybiscuit.slimefun4.utils.SlimefunUtils;
-import me.mrCookieSlime.Slimefun.SlimefunPlugin;
-import me.mrCookieSlime.Slimefun.Lists.SlimefunItems;
 import me.mrCookieSlime.Slimefun.Objects.SlimefunItem.SlimefunItem;
 import me.mrCookieSlime.Slimefun.api.BlockStorage;
+import me.mrCookieSlime.Slimefun.api.Slimefun;
 import me.mrCookieSlime.Slimefun.api.energy.ChargableBlock;
 
+/**
+ * This {@link Listener} is responsible for handling our debugging tool, the debug fish.
+ * This is where the functionality of this item is implemented.
+ * 
+ * @author TheBusyBiscuit
+ *
+ */
 public class DebugFishListener implements Listener {
 
-    private final String enabledTooltip;
-    private final String disabledTooltip;
+    private final String greenCheckmark;
+    private final String redCross;
 
     public DebugFishListener(SlimefunPlugin plugin) {
         plugin.getServer().getPluginManager().registerEvents(this, plugin);
 
-        enabledTooltip = "&2\u2714";
-        disabledTooltip = "&4\u2718";
+        greenCheckmark = "&2\u2714";
+        redCross = "&4\u2718";
     }
 
     @EventHandler
@@ -44,28 +56,46 @@ public class DebugFishListener implements Listener {
 
         Player p = e.getPlayer();
 
-        if (p.isOp() && SlimefunUtils.isItemSimilar(e.getItem(), SlimefunItems.DEBUG_FISH, true)) {
+        if (SlimefunUtils.isItemSimilar(e.getItem(), SlimefunItems.DEBUG_FISH, true, false)) {
             e.setCancelled(true);
 
-            if (e.getAction() == Action.LEFT_CLICK_BLOCK) {
-                if (p.isSneaking()) {
-                    if (BlockStorage.hasBlockInfo(e.getClickedBlock())) {
-                        BlockStorage.clearBlockInfo(e.getClickedBlock());
-                    }
+            if (p.hasPermission("slimefun.debugging")) {
+                if (e.getAction() == Action.LEFT_CLICK_BLOCK) {
+                    onLeftClick(p, e.getClickedBlock(), e);
                 }
-                else {
-                    e.setCancelled(false);
+                else if (e.getAction() == Action.RIGHT_CLICK_BLOCK) {
+                    onRightClick(p, e.getClickedBlock(), e.getBlockFace());
                 }
             }
-            else if (e.getAction() == Action.RIGHT_CLICK_BLOCK) {
-                if (p.isSneaking()) {
-                    Block b = e.getClickedBlock().getRelative(e.getBlockFace());
-                    b.setType(Material.PLAYER_HEAD);
-                    SkullBlock.setFromBase64(b, "eyJ0ZXh0dXJlcyI6eyJTS0lOIjp7InVybCI6Imh0dHA6Ly90ZXh0dXJlcy5taW5lY3JhZnQubmV0L3RleHR1cmUvZTllYjlkYTI2Y2YyZDMzNDEzOTdhN2Y0OTEzYmEzZDM3ZDFhZDEwZWFlMzBhYjI1ZmEzOWNlYjg0YmMifX19");
-                }
-                else if (BlockStorage.hasBlockInfo(e.getClickedBlock())) {
-                    sendInfo(p, e.getClickedBlock());
-                }
+            else {
+                SlimefunPlugin.getLocalization().sendMessage(p, "messages.no-permission", true);
+            }
+        }
+    }
+
+    private void onLeftClick(Player p, Block b, PlayerInteractEvent e) {
+        if (p.isSneaking()) {
+            if (BlockStorage.hasBlockInfo(b)) {
+                BlockStorage.clearBlockInfo(b);
+            }
+        }
+        else {
+            e.setCancelled(false);
+        }
+    }
+
+    private void onRightClick(Player p, Block b, BlockFace face) {
+        if (p.isSneaking()) {
+            Block block = b.getRelative(face);
+            block.setType(Material.PLAYER_HEAD);
+            SkullBlock.setFromHash(block, HeadTexture.MISSING_TEXTURE.getTexture());
+        }
+        else if (BlockStorage.hasBlockInfo(b)) {
+            try {
+                sendInfo(p, b);
+            }
+            catch (Exception x) {
+                Slimefun.getLogger().log(Level.SEVERE, "An Exception occured while using a Debug-Fish", x);
             }
         }
     }
@@ -79,7 +109,7 @@ public class DebugFishListener implements Listener {
         p.sendMessage(ChatColors.color("&dPlugin: " + "&e" + item.getAddon().getName()));
 
         if (b.getState() instanceof Skull) {
-            p.sendMessage(ChatColors.color("&dSkull: " + enabledTooltip));
+            p.sendMessage(ChatColors.color("&dSkull: " + greenCheckmark));
 
             // Check if the skull is a wall skull, and if so use Directional instead of Rotatable.
             if (b.getType() == Material.PLAYER_WALL_HEAD) {
@@ -91,40 +121,40 @@ public class DebugFishListener implements Listener {
         }
 
         if (BlockStorage.getStorage(b.getWorld()).hasInventory(b.getLocation())) {
-            p.sendMessage(ChatColors.color("&dInventory: " + enabledTooltip));
+            p.sendMessage(ChatColors.color("&dInventory: " + greenCheckmark));
         }
         else {
-            p.sendMessage(ChatColors.color("&dInventory: " + disabledTooltip));
+            p.sendMessage(ChatColors.color("&dInventory: " + redCross));
         }
-
-        TickerTask ticker = SlimefunPlugin.getTicker();
 
         if (item.isTicking()) {
-            p.sendMessage(ChatColors.color("&dTicker: " + enabledTooltip));
-            p.sendMessage(ChatColors.color("  &dAsync: &e" + (BlockStorage.check(b).getBlockTicker().isSynchronized() ? disabledTooltip : enabledTooltip)));
-            p.sendMessage(ChatColors.color("  &dTimings: &e" + ticker.toMillis(ticker.getTimings(b), true)));
-            p.sendMessage(ChatColors.color("  &dTotal Timings: &e" + ticker.toMillis(ticker.getTimings(BlockStorage.checkID(b)), true)));
-            p.sendMessage(ChatColors.color("  &dChunk Timings: &e" + ticker.toMillis(ticker.getTimings(b.getChunk()), true)));
+            p.sendMessage(ChatColors.color("&dTicking: " + greenCheckmark));
+            p.sendMessage(ChatColors.color("  &dAsync: &e" + (item.getBlockTicker().isSynchronized() ? redCross : greenCheckmark)));
         }
-        else if (item.getEnergyTicker() != null) {
-            p.sendMessage(ChatColors.color("&dTicking: " + "&3Indirect"));
-            p.sendMessage(ChatColors.color("  &dTimings: &e" + ticker.toMillis(ticker.getTimings(b), true)));
-            p.sendMessage(ChatColors.color("  &dChunk Timings: &e" + ticker.toMillis(ticker.getTimings(b.getChunk()), true)));
+        else if (item instanceof EnergyNetProvider) {
+            p.sendMessage(ChatColors.color("&dTicking: &3Indirect (Generator)"));
         }
         else {
-            p.sendMessage(ChatColors.color("&dTicker: " + disabledTooltip));
-            p.sendMessage(ChatColor.translateAlternateColorCodes('&', "&dTicking: " + disabledTooltip));
+            p.sendMessage(ChatColors.color("&dTicking: " + redCross));
+        }
+
+        if (SlimefunPlugin.getProfiler().hasTimings(b)) {
+            p.sendMessage(ChatColors.color("  &dTimings: &e" + SlimefunPlugin.getProfiler().getTime(b)));
+            p.sendMessage(ChatColors.color("  &dTotal Timings: &e" + SlimefunPlugin.getProfiler().getTime(item)));
+            p.sendMessage(ChatColors.color("  &dChunk Timings: &e" + SlimefunPlugin.getProfiler().getTime(b.getChunk())));
         }
 
         if (ChargableBlock.isChargable(b)) {
-            p.sendMessage(ChatColors.color("&dChargeable: " + enabledTooltip));
+            p.sendMessage(ChatColors.color("&dChargeable: " + greenCheckmark));
             p.sendMessage(ChatColors.color("  &dEnergy: &e" + ChargableBlock.getCharge(b) + " / " + ChargableBlock.getMaxCharge(b)));
         }
         else {
-            p.sendMessage(ChatColors.color("&dChargeable: " + disabledTooltip));
+            p.sendMessage(ChatColors.color("&dChargeable: " + redCross));
         }
 
-        p.sendMessage(ChatColors.color("  &dEnergyNet Type: &e" + EnergyNet.getComponent(b.getLocation())));
+        if (item instanceof EnergyNetComponent) {
+            p.sendMessage(ChatColors.color("  &dEnergyNet Type: &e" + EnergyNet.getComponent(b.getLocation())));
+        }
 
         p.sendMessage(ChatColors.color("&6" + BlockStorage.getBlockInfoAsJson(b)));
         p.sendMessage(" ");

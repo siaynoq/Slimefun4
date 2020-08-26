@@ -14,12 +14,12 @@ import org.bukkit.inventory.ItemStack;
 
 import io.github.thebusybiscuit.cscorelib2.item.CustomItem;
 import io.github.thebusybiscuit.cscorelib2.protection.ProtectableAction;
+import io.github.thebusybiscuit.slimefun4.implementation.SlimefunItems;
+import io.github.thebusybiscuit.slimefun4.implementation.SlimefunPlugin;
 import io.github.thebusybiscuit.slimefun4.utils.ChestMenuUtils;
 import io.github.thebusybiscuit.slimefun4.utils.SlimefunUtils;
 import me.mrCookieSlime.CSCoreLibPlugin.Configuration.Config;
-import me.mrCookieSlime.Slimefun.SlimefunPlugin;
 import me.mrCookieSlime.Slimefun.Lists.RecipeType;
-import me.mrCookieSlime.Slimefun.Lists.SlimefunItems;
 import me.mrCookieSlime.Slimefun.Objects.Category;
 import me.mrCookieSlime.Slimefun.Objects.SlimefunItem.SlimefunItem;
 import me.mrCookieSlime.Slimefun.Objects.SlimefunItem.abstractItems.AContainer;
@@ -38,7 +38,7 @@ public abstract class HeatedPressureChamber extends AContainer {
     public HeatedPressureChamber(Category category, SlimefunItemStack item, RecipeType recipeType, ItemStack[] recipe) {
         super(category, item, recipeType, recipe);
 
-        new BlockMenuPreset(getID(), getInventoryTitle()) {
+        new BlockMenuPreset(getID(), getItemName()) {
 
             @Override
             public void init() {
@@ -92,7 +92,7 @@ public abstract class HeatedPressureChamber extends AContainer {
 
     @Override
     protected void registerDefaultRecipes() {
-        registerRecipe(45, new ItemStack[] { SlimefunItems.BUCKET_OF_OIL }, new ItemStack[] { new CustomItem(SlimefunItems.PLASTIC_SHEET, 8) });
+        registerRecipe(45, new ItemStack[] { SlimefunItems.OIL_BUCKET }, new ItemStack[] { new CustomItem(SlimefunItems.PLASTIC_SHEET, 8) });
         registerRecipe(30, new ItemStack[] { SlimefunItems.GOLD_24K, SlimefunItems.URANIUM }, new ItemStack[] { SlimefunItems.BLISTERING_INGOT });
         registerRecipe(30, new ItemStack[] { SlimefunItems.BLISTERING_INGOT, SlimefunItems.CARBONADO }, new ItemStack[] { SlimefunItems.BLISTERING_INGOT_2 });
         registerRecipe(60, new ItemStack[] { SlimefunItems.BLISTERING_INGOT_2, new ItemStack(Material.NETHER_STAR) }, new ItemStack[] { SlimefunItems.BLISTERING_INGOT_3 });
@@ -100,11 +100,6 @@ public abstract class HeatedPressureChamber extends AContainer {
         registerRecipe(60, new ItemStack[] { SlimefunItems.NETHER_ICE, SlimefunItems.PLUTONIUM }, new ItemStack[] { new CustomItem(SlimefunItems.ENRICHED_NETHER_ICE, 4) });
         registerRecipe(45, new ItemStack[] { SlimefunItems.ENRICHED_NETHER_ICE }, new ItemStack[] { new CustomItem(SlimefunItems.NETHER_ICE_COOLANT_CELL, 8) });
         registerRecipe(8, new ItemStack[] { SlimefunItems.MAGNESIUM_DUST, SlimefunItems.SALT }, new ItemStack[] { SlimefunItems.MAGNESIUM_SALT });
-    }
-
-    @Override
-    public String getInventoryTitle() {
-        return "&cHeated Pressure Chamber";
     }
 
     @Override
@@ -148,12 +143,12 @@ public abstract class HeatedPressureChamber extends AContainer {
             if (timeleft > 0) {
                 ChestMenuUtils.updateProgressbar(menu, 22, timeleft, processing.get(b).getTicks(), getProgressBar());
 
-                if (ChargableBlock.isChargable(b)) {
-                    if (ChargableBlock.getCharge(b) < getEnergyConsumption()) return;
-                    ChargableBlock.addCharge(b, -getEnergyConsumption());
-                    progress.put(b, timeleft - 1);
+                if (ChargableBlock.getCharge(b) < getEnergyConsumption()) {
+                    return;
                 }
-                else progress.put(b, timeleft - 1);
+
+                ChargableBlock.addCharge(b, -getEnergyConsumption());
+                progress.put(b, timeleft - 1);
             }
             else {
                 menu.replaceExistingItem(22, new CustomItem(new ItemStack(Material.BLACK_STAINED_GLASS_PANE), " "));
@@ -192,11 +187,13 @@ public abstract class HeatedPressureChamber extends AContainer {
                     }
                 }
             }
-            
+
             if (found.size() == recipe.getInput().length) {
                 return recipe;
             }
-            else found.clear();
+            else {
+                found.clear();
+            }
         }
 
         return null;

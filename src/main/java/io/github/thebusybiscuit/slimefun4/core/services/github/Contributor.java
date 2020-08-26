@@ -9,9 +9,12 @@ import java.util.UUID;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentMap;
 
+import org.apache.commons.lang.Validate;
 import org.bukkit.ChatColor;
 
 import io.github.thebusybiscuit.cscorelib2.data.ComputedOptional;
+import io.github.thebusybiscuit.slimefun4.implementation.SlimefunPlugin;
+import io.github.thebusybiscuit.slimefun4.utils.HeadTexture;
 
 /**
  * Represents a {@link Contributor} who contributed to a GitHub repository.
@@ -24,8 +27,6 @@ import io.github.thebusybiscuit.cscorelib2.data.ComputedOptional;
  */
 public class Contributor {
 
-    private static final String PLACEHOLDER_HEAD = "eyJ0ZXh0dXJlcyI6eyJTS0lOIjp7InVybCI6Imh0dHA6Ly90ZXh0dXJlcy5taW5lY3JhZnQubmV0L3RleHR1cmUvNDZiYTYzMzQ0ZjQ5ZGQxYzRmNTQ4OGU5MjZiZjNkOWUyYjI5OTE2YTZjNTBkNjEwYmI0MGE1MjczZGM4YzgyIn19fQ==";
-
     private final String githubUsername;
     private final String minecraftUsername;
     private final String profileLink;
@@ -37,12 +38,15 @@ public class Contributor {
     private boolean locked = false;
 
     public Contributor(String username, String profile) {
+        Validate.notNull(username, "Username must never be null!");
+        Validate.notNull(profile, "The profile link must never be null!");
         githubUsername = profile.substring(profile.lastIndexOf('/') + 1);
         minecraftUsername = username;
         profileLink = profile;
     }
 
     public Contributor(String username) {
+        Validate.notNull(username, "Username must never be null!");
         githubUsername = username;
         minecraftUsername = username;
         profileLink = null;
@@ -129,7 +133,15 @@ public class Contributor {
      */
     public String getTexture() {
         if (!headTexture.isComputed() || !headTexture.isPresent()) {
-            return PLACEHOLDER_HEAD;
+            GitHubService github = SlimefunPlugin.getGitHubService();
+
+            if (github != null) {
+                String cached = github.getCachedTexture(githubUsername);
+                return cached != null ? cached : HeadTexture.UNKNOWN.getTexture();
+            }
+            else {
+                return HeadTexture.UNKNOWN.getTexture();
+            }
         }
         else {
             return headTexture.get();

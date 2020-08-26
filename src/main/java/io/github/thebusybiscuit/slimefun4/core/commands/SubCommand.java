@@ -4,10 +4,11 @@ import java.util.Map;
 
 import org.bukkit.command.Command;
 import org.bukkit.command.CommandSender;
+import org.bukkit.command.defaults.HelpCommand;
 import org.bukkit.entity.Player;
 
 import io.github.thebusybiscuit.slimefun4.core.services.localization.Language;
-import me.mrCookieSlime.Slimefun.SlimefunPlugin;
+import io.github.thebusybiscuit.slimefun4.implementation.SlimefunPlugin;
 
 /**
  * This class represents a {@link SubCommand}, it is a {@link Command} that starts with
@@ -23,14 +24,35 @@ public abstract class SubCommand {
     protected final SlimefunPlugin plugin;
     protected final SlimefunCommand cmd;
 
-    protected SubCommand(SlimefunPlugin plugin, SlimefunCommand cmd) {
+    private final String name;
+    private final boolean hidden;
+
+    protected SubCommand(SlimefunPlugin plugin, SlimefunCommand cmd, String name, boolean hidden) {
         this.plugin = plugin;
         this.cmd = cmd;
+
+        this.name = name;
+        this.hidden = hidden;
     }
 
-    public abstract String getName();
+    /**
+     * This returns the name of this {@link SubCommand}, the name is equivalent to the
+     * first argument given to the actual command.
+     * 
+     * @return The name of this {@link SubCommand}
+     */
+    public final String getName() {
+        return name;
+    }
 
-    public abstract boolean isHidden();
+    /**
+     * This method returns whether this {@link SubCommand} is hidden from the {@link HelpCommand}.
+     * 
+     * @return Whether to hide this {@link SubCommand}
+     */
+    public final boolean isHidden() {
+        return hidden;
+    }
 
     protected void recordUsage(Map<SubCommand, Integer> commandUsage) {
         commandUsage.merge(this, 1, Integer::sum);
@@ -53,10 +75,10 @@ public abstract class SubCommand {
      */
     public String getDescription(CommandSender sender) {
         if (sender instanceof Player) {
-            return SlimefunPlugin.getLocal().getMessage((Player) sender, getDescription());
+            return SlimefunPlugin.getLocalization().getMessage((Player) sender, getDescription());
         }
         else {
-            return SlimefunPlugin.getLocal().getMessage(getDescription());
+            return SlimefunPlugin.getLocalization().getMessage(getDescription());
         }
     }
 
